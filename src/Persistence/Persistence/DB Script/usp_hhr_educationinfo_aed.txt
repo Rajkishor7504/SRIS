@@ -1,0 +1,386 @@
+CREATE DEFINER=`srisDevu1`@`%` PROCEDURE `usp_hhr_educationinfo_aed`(
+in p_action varchar(3),
+in p_memberid int,
+in p_hhid int,
+in p_educationinfoid int,
+in p_isCurrentlyAttendingSchool int,
+in p_age int,
+in p_whystoppedgoingschool int,
+in p_otherreasonfornotgoingschool varchar(50),
+in p_typeofschoolattended int,
+in p_canreadwriteanylanguage int,
+in p_haseverattendedschool int,
+in p_whyneverattendedschool int,
+in p_otherreasonnotattendedschool varchar(20),
+in p_lastlevelcompleted int,
+in p_lastgradecompleted int,
+in p_levelattended int,
+in p_gradeattended int,
+in p_createdby int,
+in p_apptypeid int,
+out p_out int 
+
+)
+BEGIN
+
+DECLARE i INT DEFAULT 1;
+    DECLARE pintfieldid VARCHAR(50) ;
+    DECLARE pbitmandatory VARCHAR(50)  ;
+    DECLARE pbitreadonly VARCHAR(50) ;
+    DECLARE pvchdefaultvalue varchar(50);
+    DECLARE pintMaxValue VARCHAR(50) ;
+    DECLARE pintMinValue VARCHAR(50)  ;
+    DECLARE pintSlno VARCHAR(50) ;  
+    declare totaleducnt int;
+	declare totaleducntapp int;
+    declare beforeupdatelogin_id int;
+     declare getlockstatus int;
+     declare getrequestid int;
+declare getregistrationid int;
+
+declare totalcount int; -- use for mobile app
+    declare exit handler for sqlexception
+	 BEGIN 
+ GET DIAGNOSTICS CONDITION 1 
+	    @sqlstate = RETURNED_SQLSTATE,  
+            @errno = MYSQL_ERRNO, 
+            @text = MESSAGE_TEXT;   
+            ROLLBACK; 
+            set @blockName='usp_hhr_educationinfo_aed';	
+           	SET @full_error = CONCAT("ERROR ", @errno, " (", @sqlstate, "): ", @text);
+            insert into error_log
+            (VCH_ERROR_DESC,VCH_ACTION_CODE,VCH_SQL_QUERY,DTM_CREATED_ON,STM_UPDATED_ON,INT_CREATED_BY,INT_UPDATED_BY)
+            
+            values
+            (@full_error, p_action, @blockName,CURRENT_TIMESTAMP(3),CURRENT_TIMESTAMP(3),p_createdby,p_createdby);
+            	set p_out = 999;
+ END; 
+   START TRANSACTION;  
+if(p_action='A') then  -- use for mobile app api 
+
+set totaleducnt=(select count(1) from t_hhr_education where  memberid=p_memberid and hhid= p_hhid and deletedflag=0);   -- check hhcode avilable or not
+	if(totaleducnt>0) then
+     SET SQL_SAFE_UPDATES = 0;
+ update t_hhr_education set 
+    c03_haseverattendedschool=p_haseverattendedschool,
+	c04_whyneverattendedschool=p_whyneverattendedschool,
+	otherreasonnotattendedschool=p_otherreasonnotattendedschool ,
+	c05_typeofschoolattended=p_typeofschoolattended,
+	c06_typeoflevelandgradeattended=p_levelattended,
+	c06_grade=p_gradeattended, -- not use
+	c07_iscurrentlyattendingschool=p_isCurrentlyAttendingSchool,
+	c08_whystoppedgoingschool=p_whystoppedgoingschool,
+	otherreasonfornotgoingschool=p_otherreasonfornotgoingschool,
+	c09_lastlevelcompleted=p_lastlevelcompleted,
+	c09_gradecompleted=p_lastgradecompleted, -- not use
+	c10_readwriteanylanguage=p_canreadwriteanylanguage,
+	updatedby=p_createdby,
+    updatedon=current_timestamp(),
+	apptypeid=p_apptypeid where memberid=p_memberid and hhid= p_hhid and deletedflag=0;
+
+ else
+    insert into t_hhr_education
+    (
+   
+	memberid,
+	hhid,
+	c03_haseverattendedschool,
+	c04_whyneverattendedschool,
+	otherreasonnotattendedschool,
+	c05_typeofschoolattended,
+	c06_typeoflevelandgradeattended,
+	c06_grade, -- not use
+	c07_iscurrentlyattendingschool,
+	c08_whystoppedgoingschool,
+	otherreasonfornotgoingschool,
+	c09_lastlevelcompleted,
+	c09_gradecompleted,
+	c10_readwriteanylanguage,
+	createdby,
+	apptypeid
+    )
+    values
+    (
+  
+	p_memberid,
+	p_hhid,
+	p_haseverattendedschool,
+	p_whyneverattendedschool,
+	p_otherreasonnotattendedschool,
+	p_typeofschoolattended,
+	p_levelattended,--  use
+	p_gradeattended,-- not use
+	p_isCurrentlyAttendingSchool,
+	p_whystoppedgoingschool,
+	p_otherreasonfornotgoingschool,
+	p_lastlevelcompleted, --  use
+	p_lastgradecompleted,-- not use
+	p_canreadwriteanylanguage,
+	p_createdby,
+	p_apptypeid
+    );
+    end if;
+   set p_out=200;
+end if;
+if(p_action='U') then
+update t_hhr_education set 
+    c03_haseverattendedschool=p_haseverattendedschool,
+	c04_whyneverattendedschool=p_whyneverattendedschool,
+	otherreasonnotattendedschool=p_otherreasonnotattendedschool ,
+	c05_typeofschoolattended=p_typeofschoolattended,
+	c06_typeoflevelandgradeattended=p_levelattended,
+	c06_grade=p_gradeattended,
+	c07_iscurrentlyattendingschool=p_isCurrentlyAttendingSchool,
+	c08_whystoppedgoingschool=p_whystoppedgoingschool,
+	otherreasonfornotgoingschool=p_otherreasonfornotgoingschool,
+	c09_lastlevelcompleted=p_lastlevelcompleted,
+	c09_gradecompleted=p_lastgradecompleted,
+	c10_readwriteanylanguage=p_canreadwriteanylanguage,
+	updatedby=p_createdby,
+    updatedon=current_timestamp(),
+	apptypeid=p_apptypeid where educationid=p_educationinfoid;
+    set p_out=200;
+    
+end if;
+if(p_action='D') then
+    update t_hhr_education set deletedflag=1,updatedby=p_createdby,
+    updatedon=current_timestamp() where educationid=p_educationinfoid;
+    
+    set p_out=200;
+end if;
+
+
+if(p_action='R') then  -- for mobile app api (reject data update and insert new data)
+
+ set totaleducnt= (select count(1) from t_hhr_education where hhid=p_hhid and  verifystatus=2  and deletedflag=0);
+ set totaleducntapp= (select count(1) from t_hhr_education where hhid=p_hhid and  approvestatus=2  and deletedflag=0);
+ 
+if (totaleducnt or totaleducntapp)> 0 then
+
+set totalcount=(select count(1) from t_hhr_education where  memberid=p_memberid and  hhid= p_hhid and deletedflag=0);   -- check data avilable or not
+	if(totalcount>0) then
+     SET SQL_SAFE_UPDATES = 0;
+   update t_hhr_education set  -- update data 
+    c03_haseverattendedschool=p_haseverattendedschool,
+	c04_whyneverattendedschool=p_whyneverattendedschool,
+	otherreasonnotattendedschool=p_otherreasonnotattendedschool ,
+	c05_typeofschoolattended=p_typeofschoolattended,
+	c06_typeoflevelandgradeattended=p_levelattended,
+	c06_grade=p_gradeattended,
+	c07_iscurrentlyattendingschool=p_isCurrentlyAttendingSchool,
+	c08_whystoppedgoingschool=p_whystoppedgoingschool,
+	otherreasonfornotgoingschool=p_otherreasonfornotgoingschool,
+	c09_lastlevelcompleted=p_lastlevelcompleted,
+	c09_gradecompleted=p_lastgradecompleted,
+	c10_readwriteanylanguage=p_canreadwriteanylanguage,
+	updatedby=p_createdby,
+    updatedon=current_timestamp(),
+    verifystatus=0,approvestatus=0,
+	apptypeid=p_apptypeid where educationid=p_educationinfoid and deletedflag=0;
+   
+    
+    end if;
+     -- update t_hhr_registerhousehold set allverifiedstatus=0 where hhid =p_hhid and deletedflag=0;
+        -- data insert in t_hhr_statushistory
+insert into t_hhr_statushistory
+(hhid,moduleid,remarks,createdby,verifystatus,approvestatus)
+values(p_hhid,3,"",p_createdby,0,0);
+    set p_out=200;
+  
+     else
+     set totalcount=(select count(1) from t_hhr_education where  memberid=p_memberid and  hhid= p_hhid and deletedflag=0);   -- check data avilable or not
+	if(totalcount=0) then
+     insert into t_hhr_education -- insert data if data not avilable 
+    ( 
+	memberid,hhid,c03_haseverattendedschool,c04_whyneverattendedschool,otherreasonnotattendedschool,c05_typeofschoolattended,c06_typeoflevelandgradeattended,
+	c06_grade, -- not use
+	c07_iscurrentlyattendingschool,	c08_whystoppedgoingschool,	otherreasonfornotgoingschool,c09_lastlevelcompleted,	c09_gradecompleted,
+	c10_readwriteanylanguage,	createdby,	apptypeid ,verifystatus,approvestatus   )
+    values
+    (  
+	p_memberid,	p_hhid,	p_haseverattendedschool,	p_whyneverattendedschool,	p_otherreasonnotattendedschool,	p_typeofschoolattended,	p_levelattended,--  use
+	p_gradeattended,-- not use
+	p_isCurrentlyAttendingSchool,p_whystoppedgoingschool,	p_otherreasonfornotgoingschool,	p_lastlevelcompleted, --  use
+	p_lastgradecompleted,-- not use
+	p_canreadwriteanylanguage,p_createdby,p_apptypeid,0,0  ); 
+    
+    insert into t_hhr_statushistory
+(hhid,moduleid,remarks,createdby,verifystatus,approvestatus)
+values(p_hhid,3,"",p_createdby,0,0);
+
+     set p_out=200;
+     else
+        set p_out=201;
+      end if;
+       end if;
+end if;
+if(p_action='LBU') then  -- for Log before update
+START TRANSACTION;
+  -- Then update  records before insert
+	UPDATE t_hhr_education_log_before_update 
+SET 
+    deletedflag = 1,
+    updatedby = p_createdby,
+    updatedon = CURRENT_TIMESTAMP()
+WHERE
+    hhid = p_hhid and educationid=p_educationinfoid and deletedflag=0;
+insert into t_hhr_education_log_before_update
+    (
+   educationid,
+	memberid,
+	hhid,
+	c03_haseverattendedschool,
+	c04_whyneverattendedschool,
+	otherreasonnotattendedschool,
+	c05_typeofschoolattended,
+	c06_typeoflevelandgradeattended,
+	c06_grade,
+	c07_iscurrentlyattendingschool,
+	c08_whystoppedgoingschool,
+	otherreasonfornotgoingschool,
+	c09_lastlevelcompleted,
+	c09_gradecompleted,
+	c10_readwriteanylanguage,
+	createdby,
+	apptypeid
+    )
+    values
+    (
+	p_educationinfoid,
+	p_memberid,
+	p_hhid,
+	p_haseverattendedschool,
+	p_whyneverattendedschool,
+	p_otherreasonnotattendedschool,
+	p_typeofschoolattended,
+	p_levelattended,
+	p_gradeattended,
+	p_isCurrentlyAttendingSchool,
+	p_whystoppedgoingschool,
+	p_otherreasonfornotgoingschool,
+	p_lastlevelcompleted,
+	p_lastgradecompleted,
+	p_canreadwriteanylanguage,
+	p_createdby,
+	p_apptypeid
+    );
+      -- Update the Alllogupdatestatus column in t_hhr_registerhousehold
+UPDATE t_hhr_registerhousehold 
+SET 
+    Alllogupdatestatus = 1
+WHERE
+    hhid = p_hhid;
+COMMIT;  
+   set p_out=200;
+end if;
+
+
+-- Approve  Household education Details
+if(P_Action='AHR') then
+insert into t_hhr_education_log(educationid,
+memberid,hhid,c03_haseverattendedschool,c04_whyneverattendedschool,otherreasonnotattendedschool,c05_typeofschoolattended,c06_typeoflevelandgradeattended,
+c06_grade,c07_iscurrentlyattendingschool,c08_whystoppedgoingschool,otherreasonfornotgoingschool,c09_lastlevelcompleted,c09_gradecompleted,
+c10_readwriteanylanguage,createdby,createdon,updatedby,updatedon,deletedflag,apptypeid
+)
+select educationid,memberid,hhid,c03_haseverattendedschool,c04_whyneverattendedschool,otherreasonnotattendedschool,c05_typeofschoolattended,
+c06_typeoflevelandgradeattended,c06_grade,c07_iscurrentlyattendingschool,c08_whystoppedgoingschool,otherreasonfornotgoingschool,c09_lastlevelcompleted,
+c09_gradecompleted,c10_readwriteanylanguage,createdby,createdon,updatedby,updatedon,deletedflag,apptypeid
+ from t_hhr_education where educationid=p_educationinfoid and deletedflag=0;
+ 
+ 
+    -- update records in main table
+UPDATE t_hhr_education AS A inner join
+    t_hhr_education_log_before_update AS B on  A.educationid = B.educationid  and B.deletedflag=0
+SET 
+    A.memberid = B.memberid,
+    A.hhid = B.hhid,
+    A.c03_haseverattendedschool = B.c03_haseverattendedschool,
+    A.c04_whyneverattendedschool = B.c04_whyneverattendedschool,
+    A.otherreasonnotattendedschool = B.otherreasonnotattendedschool,
+    A.c05_typeofschoolattended = B.c05_typeofschoolattended,
+    A.c06_typeoflevelandgradeattended = B.c06_typeoflevelandgradeattended,
+    A.c03_haseverattendedschool = B.c03_haseverattendedschool,
+    A.c04_whyneverattendedschool = B.c04_whyneverattendedschool,
+    A.c06_grade = B.c06_grade,
+    A.c07_iscurrentlyattendingschool = B.c07_iscurrentlyattendingschool,
+    A.c08_whystoppedgoingschool = B.c08_whystoppedgoingschool,
+    A.otherreasonfornotgoingschool = B.otherreasonfornotgoingschool,
+    A.c09_lastlevelcompleted = B.c09_lastlevelcompleted,
+    A.c09_gradecompleted = B.c09_gradecompleted,
+    A.c10_readwriteanylanguage = B.c10_readwriteanylanguage,
+    A.updatedby = p_createdby,
+    A.lockstatus = 1
+WHERE
+    A.educationid = B.educationid
+        AND B.educationid = p_educationinfoid
+        AND B.deletedflag = 0;
+ 
+   -- update t_hhr_education_log_before_update (lockstatus=1 i:e Record Approve)
+				set beforeupdatelogin_id=(select logbuid from t_hhr_education_log_before_update where educationid=p_educationinfoid and deletedflag=0);
+				UPDATE t_hhr_education_log_before_update 
+SET 
+    approvestatus = 1,
+    updatedby = p_createdby,
+    updatedon = CURRENT_TIMESTAMP()
+WHERE
+    logbuid = beforeupdatelogin_id
+        AND hhid = p_hhid
+        AND deletedflag = 0;
+				 
+-- Insert record into t_hhr_statushistory moduleid-3 for Register,ActionType-2 for Approval process,approvestatus-1 for Approve
+	insert into t_hhr_statushistory(hhid,moduleid,remarks,verifystatus,approvestatus,ActionType,createdby,createdon)
+	values(p_hhid,3,'Approve Education HouseHold',0,1,2,p_createdby,current_timestamp());
+    
+      -- update t_hhr_registerhousehold (Alllockstatus=1 )
+   set getlockstatus= fun_updatelockstatus(p_hhid);  
+   
+   if(getlockstatus=1)then
+   UPDATE t_hhr_registerhousehold set Alllockstatus=1 where hhid=p_hhid and deletedflag=0;
+   
+    -- Close Grivance(start)
+								set getrequestid=( select A.requestid from t_update_requestdetail A 
+								inner join t_hhr_registerhousehold  B on A.householdno=B.hhcode and B.deletedflag=0
+								where A.deletedflag=0 and B.hhid=p_hhid);   
+									-- status=4(Grivance close)
+								update t_update_requestdetail set status=4,updatedby=p_createdby,updatedon=current_timestamp() where requestid=getrequestid;
+								-- 
+								set getregistrationid=(select A.registrationid from  t_grievance_registration A
+								inner join t_update_requestdetail B on  A.registrationid=B.grievanceregistrationid and B.deletedflag=0
+								inner join t_hhr_registerhousehold  C on B.householdno=C.hhcode and C.deletedflag=0
+								where A.deletedflag=0 and C.hhid=p_hhid);
+
+								update t_grievance_registration set status=4,updatedby=p_createdby,updatedon=current_timestamp() where registrationid=getregistrationid;
+								--
+								insert into t_grievance_status(grievanceId, status,createdby,createdon,remarks,deletedflag)
+								VALUES(getregistrationid,4,p_createdby, current_timestamp(),'',0); 
+                        
+                         -- Close Grivance(end)
+   
+   
+   end if;
+                
+ set p_out=200;
+ 
+end if;
+-- Reject  Household Education Details
+if(P_Action='RHR') then
+START TRANSACTION;
+             -- update t_hhr_education_log_before_update (lockstatus=2 i:e Record Reject)
+				set beforeupdatelogin_id=(select logbuid from t_hhr_education_log_before_update where  educationid=p_educationinfoid  and deletedflag=0);
+				UPDATE t_hhr_education_log_before_update 
+SET 
+    approvestatus = 2,
+    updatedby = createdby,
+    updatedon = CURRENT_TIMESTAMP()
+WHERE
+    logbuid = beforeupdatelogin_id
+        AND educationid = p_educationinfoid
+        AND deletedflag = 0;
+                    -- Insert record into t_hhr_statushistory moduleid-1 for Register,ActionType-2 for Approval process,approvestatus-2 for Reject
+                      insert into t_hhr_statushistory(hhid,moduleid,remarks,verifystatus,approvestatus,ActionType,createdby,createdon)
+					  values(p_hhid,3,'Reject Register HouseHold',0,2,2,p_createdby,current_timestamp());
+   COMMIT;                
+				set p_out=200;
+end if;
+ COMMIT;  
+END
